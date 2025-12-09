@@ -1,0 +1,85 @@
+# -----------------------------
+# Python
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.sqlite3
+
+# Virtual environments
+venv/
+ENV/
+env/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# -----------------------------
+# FastAPI / Uvicorn / Runtime
+# -----------------------------
+logs/
+*.log
+
+# Cache files
+*.cache
+.cache/
+app/cache/*.json
+
+# Uploaded files (if any)
+uploads/
+tmp/
+temp/
+
+# -----------------------------
+# OS / Editor Files
+# -----------------------------
+.DS_Store
+Thumbs.db
+samples/
+
+# VS Code
+.vscode/
+.code/
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+
+# -----------------------------
+# Environment variables
+# -----------------------------
+.env
+.env.*
+*.env
+
+# -----------------------------
+# Build / Distribution
+# -----------------------------
+build/
+dist/
+*.whl
+
+# -----------------------------
+# Node (if any UI later)
+# -----------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -----------------------------
+# Temp / backup files
+# -----------------------------
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# -----------------------------
+# Mac-specific
+# -----------------------------
+.AppleDouble
+.LSOverride
