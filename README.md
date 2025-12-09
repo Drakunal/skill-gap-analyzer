@@ -1,180 +1,196 @@
-```markdown
 # **Skill Gap Analyzer – README**
 
-A fully modular **AI-driven CV vs Job Description analyzer** built using FastAPI.  
-It identifies skill gaps, computes suitability scores, and generates actionable improvement recommendations using a combination of **LLM reasoning** + **deterministic fallback pipelines**.
+A modular **AI-powered CV vs Job Description Analyzer** built using FastAPI.
+It identifies required skills, matches them against the candidate’s CV, computes suitability scores, and generates actionable improvement recommendations using:
+
+* LLM-powered structured reasoning
+* Deterministic fallback pipelines (no API cost)
+* Human-readable summaries
 
 ---
 
 # 🚀 **Features**
 
-- Upload CV (PDF/DOCX/TXT) → Automated parsing & caching  
-- LLM-powered JD–CV comparison with structured JSON output  
-- Fallback analysis pipeline (zero-cost, no external API calls)  
-- Smart missing-skill recommendations  
-- Human-readable summaries for candidates  
-- Daily rotating logs  
-- Clean modular architecture  
+* Upload CV (PDF / DOCX / TXT)
+* Automated text extraction & caching
+* LLM-based JD–CV comparison
+* Extraction of required skills, missing skills, matched keywords
+* Suitability scoring + difficulty estimation
+* Actionable recommendations (LLM + deterministic)
+* Human-readable summary for candidates
+* Daily rotating logs for full observability
 
 ---
 
 # 📁 **Project Structure**
 
 ```
-
 app/
 │
 ├── api/
-│   └── routes.py
+│   └── routes.py                  # All API endpoints
 │
 ├── core/
-│   ├── config.py
-│   ├── logger.py
-│   └── prompts.py
+│   ├── config.py                  # Settings (.env loader)
+│   └──  logger.py                  # Rotating logs
 │
 ├── cache/
-│   └── cv_cache.py
+│   └── cv_cache.py                # In-memory CV storage
 │
 ├── llm/
-│   └── client.py
+│   ├── client.py                  # OpenAI/Gemini wrapper
+│   └── prompts.py                 # Centralized LLM prompts
 │
 ├── models/
-│   └── schemas.py
+│   └── schemas.py                 # Pydantic API models
 │
 ├── services/
-│   ├── analyze_service.py
-│   ├── extractor_service.py
-│   ├── compare_service.py
-│   ├── parser_service.py
-│   └── recommend_service.py
+│   ├── analyze_service.py         # The main engine (LLM + fallback)
+│   ├── extractor_service.py       # Extracts skills (LLM + regex)
+│   ├── compare_service.py         # Deterministic skill comparison
+│   ├── parser_service.py          # File parsing + CV ID creation
+│   └── recommend_service.py       # Offline recommendations
 │
-└── main.py
-
+└── main.py                        # FastAPI entrypoint
 ```
 
 ---
 
-# ⚙️ **Services Overview**
+# ⚙️ **Service Breakdown**
 
-### **1. analyze_service.py (THE BRAIN)**
-Handles the full end-to-end analysis:
-- Calls LLM with structured prompts  
-- Validates JSON response  
-- Performs hallucination checks  
-- Computes skill gap & suitability  
-- Combines LLM suggestions + deterministic recommendations  
-- Builds human-readable summaries  
-- Fallback mode activates automatically when:
-  - LLM quota exceeded  
-  - JSON invalid  
-  - API failure  
+## **1. analyze_service.py → The Orchestrator**
 
----
+This is the **core intelligence layer**.
 
-### **2. extractor_service.py**
-Used mainly in fallback mode:
-- Extracts skills from JD/CV  
-- Attempts LLM first  
-- Falls back to regex-based keyword extraction  
-- Ensures the system still functions without LLM
+Responsibilities:
+
+* Builds prompts using JD + CV
+* Calls LLM (analyze + recommendations)
+* Validates JSON output
+* Detects hallucinations
+* Computes missing skills, matches, suitability
+* Merges LLM suggestions + deterministic skill projects
+* Generates human-readable summaries
+* Falls back to non-LLM pipeline when:
+
+  * LLM quota exceeded
+  * JSON invalid
+  * API failure
 
 ---
 
-### **3. compare_service.py**
-Deterministic skill comparison:
-- Keyword matching  
-- Occurrence-based metrics  
-- Missing-skill identification  
-- Suitability scoring (non-LLM)  
+## **2. extractor_service.py**
+
+Used primarily in fallback mode.
+
+Responsibilities:
+
+* Extract skill-like tokens from text
+* Uses:
+
+  * LLM-based extraction (first attempt)
+  * Regex keyword extraction (fallback)
+* Ensures analysis always works even when LLM is unavailable
 
 ---
 
-### **4. parser_service.py**
-Handles file parsing:
-- Reads PDF, DOCX, TXT  
-- Extracts text safely  
-- Cleans content  
-- Generates MD5 hash (cv_id)  
-- Stores parsed CV in cache  
+## **3. compare_service.py**
+
+Deterministic scoring engine.
+
+Responsibilities:
+
+* Compare JD skills vs CV skills
+* Keyword matching with occurrence counts
+* Missing skill detection
+* Suitability score calculation
+* Difficulty estimation heuristics
 
 ---
 
-### **5. recommend_service.py**
-Offline recommendation generator:
-- For each missing skill:
-  - Suggests a small project  
-  - Generates an addable CV bullet  
-  - Provides resources/tools for learning  
-- Zero LLM cost  
-- Used in combination with LLM suggestions  
+## **4. parser_service.py**
+
+Handles file uploads.
+
+Responsibilities:
+
+* Parse PDF / DOCX / TXT → clean normalized text
+* Generate `cv_id` using MD5 hashing
+* Store parsed content in cache
+* Return CV snippet for preview
 
 ---
 
-# 🧠 **LLM Prompts**
+## **5. recommend_service.py**
 
-Stored centrally in:
+Provides **zero-cost** recommendations without LLM.
+
+Responsibilities:
+
+* Suggests a project for each missing skill
+* Generates a CV bullet the user can add
+* Includes learning resources or links
+* Combined with LLM recommendations in output
+
+---
+
+# 🧠 **Centralized Prompts**
+
+Located in:
+
 ```
-
 app/core/prompts.py
-
 ```
 
 Contains:
-- `ANALYZE_PROMPT_TEMPLATE`
-- `CAREER_SUGGEST_PROMPT`
-- `READABLE_POLISH_PROMPT`
 
-Modifying behaviour requires changing only this file.
+* `ANALYZE_PROMPT_TEMPLATE`
+* `CAREER_SUGGEST_PROMPT`
+* `READABLE_POLISH_PROMPT`
+
+All LLM behavior can be tuned from this one file — no need to touch service logic.
 
 ---
 
 # 🧾 **API Endpoints**
 
-### **1. Upload CV**
-```
+## **1. Upload CV**
 
+```
 POST /api/v1/upload-cv
-
-```
-Returns:
-- `cv_id`
-- `snippet`
-- `cached`
-
----
-
-### **2. Analyze CV vs JD (Form-data)**
 ```
 
+Response:
+
+* `cv_id`
+* `snippet`
+* `cached`
+
+## **2. Analyze (Multipart Form)**
+
+```
 POST /api/v1/analyze-form
-
-```
-Good for large JDs in Postman/Swagger.
-
----
-
-### **3. Analyze CV vs JD (JSON)**
 ```
 
+Best for large JDs.
+
+## **3. Analyze (JSON)**
+
+```
 POST /api/v1/analyze
-
 ```
 
----
+## **4. Health Check**
 
-### **4. Health**
 ```
-
 GET /api/v1/health
-
 ```
 
 ---
 
-# 🔧 **Configuration (.env)**
+# 🛠️ **Configuration (.env)**
 
 ```
-
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini
 
@@ -183,112 +199,80 @@ GEMINI_MODEL=gemini-2.5-flash-lite
 
 MAX_CV_CHARS=12000
 MAX_CACHED_ITEMS=200
-
 ```
 
 ---
 
 # 📜 **Logging**
 
-File: `app/core/logger.py`
-
-- Logs everything: uploads, LLM calls, fallback usage, errors  
-- Daily log rotation  
-- Log folder example:
-```
-
-logs/
-├── 2025-12-09.log
-├── 2025-12-10.log
+File:
 
 ```
-
-Format:
+app/core/logger.py
 ```
 
-2025-12-09 21:38:17,354 | INFO | skill_gap_analyzer | analyze_and_recommend:379 | message...
+Features:
+
+* Daily rotating logs (`YYYY-MM-DD.log`)
+* Logs LLM prompts, errors, fallback events, API calls
+* Keeps console output clean (unless debug enabled)
+
+Example log entry:
 
 ```
-
----
-
-# 🌐 **Installation**
-
-```
-
-git clone <repo>
-cd skill-gap-analyzer
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
+2025-12-09 21:38:17,354 | INFO | skill_gap_analyzer | analyze_and_recommend:379 | LLM analyze failed — fallback activated.
 ```
 
 ---
 
-# 🔄 **High-Level Flowchart (Text Version)**
+# 🔄 **High-Level Flowchart (Text Format)**
 
 ```
-
-```
-                   ┌─────────────────────────┐
-                   │     Upload CV File      │
-                   └────────────┬────────────┘
-                                │
-                                ▼
-                  ┌──────────────────────────┐
-                  │   parser_service reads   │
-                  │  PDF/DOCX/TXT → text     │
-                  └────────────┬─────────────┘
-                                │
-                       cv_id generated
-                                │
-                                ▼
-                 ┌───────────────────────────┐
-                 │   CV stored in cache      │
-                 └────────────┬──────────────┘
-                                │
-                User sends JD + cv_id (Analyze)
-                                │
-                                ▼
-             ┌──────────────────────────────────┐
-             │    analyze_service orchestrates   │
-             │   (LLM attempt → fallback if fail)│
-             └──────────────────┬────────────────┘
-                                │
-                 ┌──────────────┴────────────────┐
-                 │         LLM CALL SUCCESS?      │
-                 └───────────┬──────┬────────────┘
-                             │      │
-                          YES│      │NO
-                             │      │
-                             ▼      ▼
-   ┌───────────────────────────┐    ┌────────────────────────┐
-   │ Parse structured JSON     │    │ extractor_service       │
-   │ Required/CV/Missing Skills│    │ extract skills          │
-   └──────────────┬────────────┘    └──────────────┬─────────┘
-                  │                                │
-                  ▼                                ▼
-    ┌────────────────────────┐         ┌────────────────────────┐
-    │ Merge recommendations  │         │ compare_service scores │
-    │ (LLM + deterministic)  │         │ suitability & keywords │
-    └──────────────┬─────────┘         └──────────────┬────────┘
-                   │                                 │
-                   ▼                                 ▼
-     ┌──────────────────────────────┐     ┌──────────────────────────────┐
-     │ Build human-readable summary │     │ recommend_service suggests   │
-     │ readable_recommendations     │     │ projects & learning links    │
-     └──────────────┬──────────────┘     └──────────────┬──────────────┘
-                    │                                     │
-                    └──────────────────┬──────────────────┘
-                                       ▼
-                     ┌───────────────────────────────────┐
-                     │   Structured JSON Response        │
-                     │  + Human Summary                  │
-                     └───────────────────────────────────┘
-```
-
+                           ┌────────────────────────┐
+                           │      Upload CV File    │
+                           └─────────────┬──────────┘
+                                         │
+                                         ▼
+                        ┌────────────────────────────────┐
+                        │ parser_service: extract text    │
+                        │ generate cv_id → save to cache  │
+                        └─────────────────┬───────────────┘
+                                          │
+                           User sends JD + cv_id for analysis
+                                          │
+                                          ▼
+                    ┌─────────────────────────────────────────┐
+                    │   analyze_service orchestrates process   │
+                    └──────────────────┬──────────────────────┘
+                                       │
+                 ┌─────────────────────┴─────────────────────┐
+                 │            LLM call successful?           │
+                 └───────────────┬───────────────┬──────────┘
+                                 │ Yes           │ No
+                                 ▼               ▼
+        ┌─────────────────────────────┐   ┌───────────────────────────┐
+        │ Parse LLM JSON              │   │ extractor_service extracts │
+        │ Required/CV/missing skills  │   │ skills (LLM → regex)       │
+        └──────────────┬──────────────┘   └──────────────┬────────────┘
+                       │                                   │
+                       ▼                                   ▼
+        ┌────────────────────────────┐      ┌──────────────────────────┐
+        │ Merge LLM suggestions +    │      │ compare_service scores   │
+        │ deterministic recommendations│      │ suitability & keywords  │
+        └──────────────┬─────────────┘      └──────────────┬─────────┘
+                       │                                     │
+                       ▼                                     ▼
+           ┌────────────────────────────┐      ┌───────────────────────────┐
+           │ Build human summary        │      │ recommend_service generates│
+           │ readable_recommendations   │      │ project ideas + CV bullets │
+           └──────────────┬────────────┘      └──────────────┬────────────┘
+                          │                                    │
+                          └──────────────────┬─────────────────┘
+                                             ▼
+                               ┌────────────────────────────────┐
+                               │ Final structured JSON response │
+                               │ + human_readable_summary       │
+                               └────────────────────────────────┘
 ```
 
 ---
@@ -296,38 +280,177 @@ uvicorn app.main:app --reload
 # 📦 **Example Output**
 
 ```
-
 {
-"required_skills": ["Python", "TensorFlow", "ML Ops"],
-"cv_skills": ["Python", "Pytorch", "SQL"],
-"missing_skills": ["TensorFlow", "ML Ops"],
-"suitability": {"score": 0.62, "label": "Potential Fit"},
-"readable_recommendations": [
-"Build a TensorFlow CNN model...",
-"Deploy a model using CI/CD..."
-],
-"human_readable_summary": "Fit: Potential Fit (62%). Missing skills: TensorFlow..."
+  "required_skills": ["Python", "TensorFlow", "ML Ops"],
+  "cv_skills": ["Python", "SQL", "Pytorch"],
+  "missing_skills": ["TensorFlow", "ML Ops"],
+  "suitability": {"score": 0.62, "label": "Potential Fit"},
+  "readable_recommendations": [
+    "Implement a TensorFlow CNN model for classification...",
+    "Deploy a model through a minimal CI/CD pipeline..."
+  ],
+  "human_readable_summary": "Fit: Potential Fit (62%). Missing skills: TensorFlow, ML Ops. Top action: Implement a TensorFlow CNN model..."
 }
+```
+---
 
+# 🏃‍♂️ **How to Run the Project**
+
+Follow these steps to set up and run the Skill Gap Analyzer locally.
+
+---
+
+## **1️⃣ Clone the Repository**
+
+```
+git clone https://github.com/Drakunal/skill-gap-analyzer.git
+cd skill-gap-analyzer
 ```
 
 ---
 
-# 🎯 **Future Enhancements (Optional)**
+## **2️⃣ Create a Virtual Environment**
 
-- User authentication (JWT)  
-- Database storage of user sessions  
-- Rate limiting per user  
-- Admin dashboard for usage stats  
-- Frontend UI (React / Next.js)  
+```
+python3 -m venv venv
+source venv/bin/activate       # macOS / Linux
+venv\Scripts\activate          # Windows PowerShell
+```
 
 ---
 
-If you'd like, I can also provide:
-- Architecture diagram (text-based or Mermaid format)  
-- A more detailed developer guide  
-- API usage examples  
-- A CLI wrapper for testing  
+## **3️⃣ Install Dependencies**
 
-Just ask!  
 ```
+pip install -r requirements.txt
+```
+
+---
+
+## **4️⃣ Create a `.env` File**
+
+Inside the project root, create:
+
+```
+.env
+```
+
+With contents:
+
+```
+OPENAI_API_KEY=your-openai-key
+OPENAI_MODEL=gpt-4o-mini
+
+GEMINI_API_KEY=your-gemini-key
+GEMINI_MODEL=gemini-2.5-flash-lite
+
+MAX_CV_CHARS=12000
+MAX_CACHED_ITEMS=200
+```
+
+⚠️ **At least one key (OpenAI or Gemini) must be valid** for full LLM-powered analysis.
+If both fail, the system automatically falls back to deterministic mode.
+
+---
+
+## **5️⃣ Run the Server**
+
+```
+uvicorn app.main:app --reload
+```
+
+You should now see:
+
+```
+Uvicorn running on http://127.0.0.1:8000
+```
+
+---
+
+## **6️⃣ Open API Docs**
+
+Visit:
+
+```
+http://127.0.0.1:8000/docs
+```
+
+You'll find:
+
+* **POST /upload-cv**
+* **POST /analyze-form**
+* **POST /analyze**
+* **GET /health**
+
+Everything is interactive.
+
+---
+
+## **7️⃣ Usage Flow**
+
+### **Step 1 → Upload CV**
+
+Use `/api/v1/upload-cv`
+Returns:
+
+* `cv_id`
+* `cached`
+* `snippet`
+
+### **Step 2 → Analyze**
+
+Use either:
+
+#### **Form Data (recommended for large JDs):**
+
+```
+POST /api/v1/analyze-form
+job_description = (paste JD here)
+cv_id = (from upload response)
+```
+
+#### **JSON Input:**
+
+```
+POST /api/v1/analyze
+{
+  "job_description": "....",
+  "cv_id": "md5hash..."
+}
+```
+
+---
+
+## **8️⃣ Logs**
+
+All logs go to:
+
+```
+logs/YYYY-MM-DD.log
+```
+
+Logs include:
+
+* LLM prompts (trimmed)
+* Errors
+* Fallback triggers
+* Parsed CV sizes
+* Timing diagnostics
+
+---
+
+## **9️⃣ Optional: Run in Production (Gunicorn + Uvicorn Workers)**
+
+```
+gunicorn app.main:app -k uvicorn.workers.UvicornWorker --workers 4 --bind 0.0.0.0:8000
+```
+
+---
+
+# 🎯 **Future Enhancements**
+
+* Database integration (PostgreSQL / MongoDB)
+* User accounts & saved analyses
+* Frontend (Next.js / React)
+* PDF report export
+* Multi-model support (Anthropic, DeepSeek, Llama)
