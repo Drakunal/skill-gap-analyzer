@@ -26,11 +26,11 @@ def cv_parser_agent(state: SkillGapState) -> dict:
     # Will call: ask_llm(CV_PROFILE_EXTRACTION_PROMPT.format(cv_text=...))
     # Then parse JSON response into CVProfile
 
-    # profile = CVProfile(
-    #     raw_text=state.get("cv_raw_text", ""),
-    #     skills=[],          # placeholder
-    #     parse_errors=["stub: not yet implemented"],
-    # )
+    profile = CVProfile(
+        raw_text=state.get("cv_raw_text", ""),
+        skills=[],          # placeholder
+        parse_errors=["stub: not yet implemented"],
+    )
 
     # logger.info("[cv_parser_agent] Done. skills_found=%d", len(profile.skills))
 
