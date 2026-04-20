@@ -10,6 +10,8 @@ sits *after* that — it takes the already-extracted raw text and runs a second
 LLM pass to produce structured fields (skills, roles, education).
 """
 
+from ast import Return
+
 from app.graph.state import SkillGapState, CVProfile
 from app.core.logger import logger
 
@@ -32,8 +34,8 @@ def cv_parser_agent(state: SkillGapState) -> dict:
         parse_errors=["stub: not yet implemented"],
     )
 
-    # logger.info("[cv_parser_agent] Done. skills_found=%d", len(profile.skills))
+    logger.info("[cv_parser_agent] Done. skills_found=%d", len(profile.skills))
 
-    # # Return ONLY the keys this node owns.
-    # # Never return the full state — partial updates are the contract.
+    # Return ONLY the keys this node owns.
+    # Never return the full state — partial updates are the contract.
     return {"cv_profile": profile}
