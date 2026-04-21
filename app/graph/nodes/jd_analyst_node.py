@@ -15,14 +15,14 @@ from app.core.logger import logger
 
 
 def jd_analyst_agent(state: SkillGapState) -> dict:
-    # logger.info("[jd_analyst_agent] Starting. jd_len=%d", len(state.get("jd_raw_text", "")))
+    logger.info("[jd_analyst_agent] Starting. jd_len=%d", len(state.get("jd_raw_text", "")))
 
-    # # STUB — real implementation comes in Phase 2
-    # jd_text = state.get("jd_raw_text", "")
+    # STUB — real implementation comes in Phase 2
+    jd_text = state.get("jd_raw_text", "")
 
-    # # Basic malformed heuristic (will be replaced by LLM detection)
-    # is_malformed = len(jd_text.strip().split()) < 20
-    # reason = "JD too short (< 20 words)" if is_malformed else None
+    # Basic malformed heuristic (will be replaced by LLM detection)
+    is_malformed = len(jd_text.strip().split()) < 20
+    reason = "JD too short (< 20 words)" if is_malformed else None
 
     # requirements = JDRequirements(
     #     raw_text=jd_text,
@@ -32,7 +32,7 @@ def jd_analyst_agent(state: SkillGapState) -> dict:
 
     # logger.info("[jd_analyst_agent] Done. is_malformed=%s", is_malformed)
 
-    # return {
-    #     "jd_requirements": requirements,
-    #     "jd_is_malformed": is_malformed,   # write the control flag too
-    # }
+    return {
+        "jd_requirements": requirements,
+        "jd_is_malformed": is_malformed,   # write the control flag too
+    }
