@@ -24,13 +24,13 @@ def jd_analyst_agent(state: SkillGapState) -> dict:
     is_malformed = len(jd_text.strip().split()) < 20
     reason = "JD too short (< 20 words)" if is_malformed else None
 
-    # requirements = JDRequirements(
-    #     raw_text=jd_text,
-    #     is_malformed=is_malformed,
-    #     malformed_reason=reason,
-    # )
+    requirements = JDRequirements(
+        raw_text=jd_text,
+        is_malformed=is_malformed,
+        malformed_reason=reason,
+    )
 
-    # logger.info("[jd_analyst_agent] Done. is_malformed=%s", is_malformed)
+    logger.info("[jd_analyst_agent] Done. is_malformed=%s", is_malformed)
 
     return {
         "jd_requirements": requirements,
