@@ -29,9 +29,9 @@ def coach_agent(state: SkillGapState) -> dict:
     )
 
     logger.info("[coach_agent] Done. quality=%.2f", plan.plan_quality_score)
-    # return {
-    #     "coaching_plan": plan,
-    #     "coach_retry_count": retry_count + 1,
-    #     "suggested_improvements": [],   # operator.add accumulates
-    #     "pipeline_complete": plan.plan_quality_score >= 0.6,
-    # }
+    return {
+        "coaching_plan": plan,
+        "coach_retry_count": retry_count + 1,
+        "suggested_improvements": [],   # operator.add accumulates
+        "pipeline_complete": plan.plan_quality_score >= 0.6,
+    }
