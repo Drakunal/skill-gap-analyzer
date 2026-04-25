@@ -9,6 +9,9 @@ from app.services.analyze_service import analyze_and_recommend
 from app.models.schemas import UploadCVOut, AnalyzeIn, AnalyzeOut
 from app.core.logger import logger
 
+from app.graph.builder import skill_gap_graph
+from app.graph.state import SkillGapState
+
 router = APIRouter()
 
 
@@ -46,32 +49,64 @@ def analyze(payload: AnalyzeIn):
         if not cv_entry:
             logger.warning("Analyze (JSON): cv_id not found in cache: %s", payload.cv_id)
             raise HTTPException(status_code=404, detail="cv_id not found in cache")
+
         cv_text = cv_entry["text"]
         logger.debug("Analyze (JSON): cv snippet: %s", cv_text[:200])
 
-        result = analyze_and_recommend(jd_text, cv_text)
-
         job_id = hashlib.md5(jd_text.encode("utf-8")).hexdigest()
+
+        initial_state: SkillGapState = {
+            "cv_id": payload.cv_id,
+            "cv_raw_text": cv_text,
+            "jd_raw_text": jd_text,
+            "cv_profile": None,
+            "jd_requirements": None,
+            "gap_analysis": None,
+            "coaching_plan": None,
+            "suggested_improvements": [],
+            "jd_is_malformed": False,
+            "coach_retry_count": 0,
+            "pipeline_complete": False,
+            "errors": [],
+            "run_id": job_id,
+            "timing": {},
+        }
+
+        final_state = skill_gap_graph.invoke(initial_state)
+
+        result = final_state.get("gap_analysis")
+        coaching_plan = final_state.get("coaching_plan")
+
         response = {
             "job_id": job_id,
             "cv_id": payload.cv_id,
             "jd_text_snippet": jd_text[:200],
             "cv_text_snippet": cv_text[:200],
-            "required_skills": result.get("required_skills", []),
-            "cv_skills": result.get("cv_skills", []),
-            "missing_skills": result.get("missing_skills", []),
-            "matched_keywords": result.get("matched_keywords", []),
-            "suitability": result.get("suitability", {"score": 0.0, "label": "Unknown"}),
-            "difficulty_estimate": result.get("difficulty_estimate", {"score": 0.0, "reason": ""}),
-            "suggested_improvements": result.get("suggested_improvements", []),
-            "confidence": result.get("confidence", 0.0),
-            "flags": result.get("flags", {}),
-            "timing": result.get("timing", {})
+            "required_skills": result.required_skills if result else [],
+            "cv_skills": result.cv_skills if result else [],
+            "missing_skills": result.missing_skills if result else [],
+            "matched_keywords": result.matched_keywords if result else [],
+            "suitability": {
+                "score": result.suitability_score if result else 0.0,
+                "label": result.suitability_label if result else "Unknown",
+            },
+            "difficulty_estimate": {
+                "score": result.difficulty_score if result else 0.0,
+                "reason": result.difficulty_reason if result else "",
+            },
+            "suggested_improvements": final_state.get("suggested_improvements", []),
+            "confidence": result.confidence if result else 0.0,
+            "flags": {
+                "pipeline_complete": final_state.get("pipeline_complete", False),
+                "jd_is_malformed": final_state.get("jd_is_malformed", False),
+            },
+            "timing": final_state.get("timing", {}),
         }
 
         duration = time.time() - start
         logger.info("Analyze (JSON) complete: job_id=%s duration_ms=%d", job_id, int(duration * 1000))
         return JSONResponse(response)
+
     except HTTPException:
         raise
     except Exception as e:
@@ -93,12 +128,14 @@ def analyze_form(job_description: str = Form(...), cv_id: str = Form(...)):
         if not cv_entry:
             logger.warning("Analyze (form): cv_id not found in cache: %s", cv_id)
             raise HTTPException(status_code=404, detail="cv_id not found in cache")
+
         cv_text = cv_entry["text"]
         logger.debug("Analyze (form): cv snippet: %s", cv_text[:200])
 
         result = analyze_and_recommend(jd_text, cv_text)
 
         job_id = hashlib.md5(jd_text.encode("utf-8")).hexdigest()
+
         response = {
             "job_id": job_id,
             "cv_id": cv_id,
@@ -119,6 +156,7 @@ def analyze_form(job_description: str = Form(...), cv_id: str = Form(...)):
         duration = time.time() - start
         logger.info("Analyze (form) complete: job_id=%s duration_ms=%d", job_id, int(duration * 1000))
         return JSONResponse(response)
+
     except HTTPException:
         raise
     except Exception as e:
